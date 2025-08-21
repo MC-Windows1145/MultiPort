@@ -31,7 +31,6 @@ class Main extends PluginBase
 
     public function onEnable()
     {
-        @mkdir($this->getDataFolder());
         $this->getLogger()->info("§e尝试读取配置文件");
         $this->saveDefaultConfig();
 
@@ -92,15 +91,15 @@ class Main extends PluginBase
                     ]);
                 }
             } else {
-                $port = (int) $bindingConfig;
+                $port = $bindingConfig;
             }
 
-            if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
                 $this->getLogger()->error("IPV4地址 $ip 不合法");
                 continue;
             }
 
-            if ($port < 1 || $port > 65535) {
+            if ($port < 1 || $port > 65535 || !filter_var($port, FILTER_VALIDATE_INT)) {
                 $this->getLogger()->error("端口 $port 无效");
                 continue;
             }
