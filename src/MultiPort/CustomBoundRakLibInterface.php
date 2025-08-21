@@ -20,6 +20,7 @@
  */
 namespace MultiPort;
 
+use pocketmine\network\protocol\Info as ProtocolInfo;
 use pocketmine\network\RakLibInterface;
 use pocketmine\Server;
 use raklib\server\RakLibServer;
@@ -27,7 +28,10 @@ use raklib\server\ServerHandler;
 
 class CustomBoundRakLibInterface extends RakLibInterface
 {
-    protected $customName = "";
+    /**
+     * @var string[]
+     */
+    protected $customName = [];
     public function __construct(Server $server, $ip = null, $port = null/*, $internalPort = null*/)
     {
         $reflection = new \ReflectionClass(parent::class);
@@ -72,16 +76,55 @@ class CustomBoundRakLibInterface extends RakLibInterface
         return $interfaceProperty->getValue($this);
     }
 
+    /**
+     * @param string[] $name
+     */
     public function setCustomName($name)
     {
         $this->customName = $name;
-        $this->getHandler()->sendOption("name", $name);
+    }
+
+    protected function getServer() {
+        $reflection = new \ReflectionClass(parent::class);
+        $serverProperty = $reflection->getProperty('server');
+        $serverProperty->setAccessible(true);
+        return $serverProperty->getValue($this);
     }
 
     public function setName($name)
     {
         if (empty($this->customName)) {
             parent::setName($name);
+        } else {
+            $this->updateCustomName(); // 有事才会来找我
         }
+    }
+
+    public function updateCustomName()
+    {
+        $info = $this->getServer()->getQueryInformation();
+        $customName = [
+            "edition" => "MCPE",
+            "motd" => $info->getServerName(),
+            "protocol" => ProtocolInfo::CURRENT_PROTOCOL,
+            "version" => \pocketmine\MINECRAFT_VERSION_NETWORK,
+            "onlineplayers" => $info->getPlayerCount(),
+            "maxplayers" => $info->getMaxPlayerCount()
+        ];
+        $customName = array_merge($customName, $this->customName);
+        $customName = implode(";", [
+            $customName["edition"],
+            addcslashes($customName["motd"], ";"),
+            $customName["protocol"],
+            $customName["version"],
+            $customName["onlineplayers"],
+            $customName["maxplayers"]
+        ]);
+        $this->sendFullName($customName);
+    }
+
+    public function sendFullName($fullName)
+    {
+        $this->getHandler()->sendOption("name", $fullName);
     }
 }

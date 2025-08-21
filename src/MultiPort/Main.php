@@ -20,7 +20,6 @@
  */
 namespace MultiPort;
 
-use pocketmine\network\protocol\Info as ProtocolInfo;
 use pocketmine\plugin\PluginBase;
 use pocketmine\network\RakLibInterface;
 
@@ -53,7 +52,7 @@ class Main extends PluginBase
             $ip = $mainIp;
             $port = $mainPort;
 
-            $customName = "";
+            $customName = [];
 
             if (is_array($bindingConfig)) {
                 if (isset($bindingConfig["port"])) {
@@ -65,30 +64,11 @@ class Main extends PluginBase
                 }
 
                 if (isset($bindingConfig["name"])) {
-                    $info = $this->getServer()->getQueryInformation();
-                    $customName = [
-                        "edition" => "MCPE",
-                        "motd" => $info->getServerName(),
-                        "protocol" => ProtocolInfo::CURRENT_PROTOCOL,
-                        "version" => \pocketmine\MINECRAFT_VERSION_NETWORK,
-                        "onlineplayers" => $info->getPlayerCount(),
-                        "maxplayers" => $info->getMaxPlayerCount()
-                    ];
-
                     if (is_array($bindingConfig["name"])) {
-                        $customName = array_merge($customName, $bindingConfig["name"]);
+                        $customName = $bindingConfig["name"];
                     } else {
                         $customName["motd"] = (string) $bindingConfig["name"];
                     }
-
-                    $customName = implode(";", [
-                        $customName["edition"],
-                        addcslashes($customName["motd"], ";"),
-                        $customName["protocol"],
-                        $customName["version"],
-                        $customName["onlineplayers"],
-                        $customName["maxplayers"]
-                    ]);
                 }
             } else {
                 $port = $bindingConfig;
@@ -126,10 +106,10 @@ class Main extends PluginBase
      * 构造CustomBoundRakLibInterface并注册到Network，失败返回null
      * @param string $ip
      * @param int $port
-     * @param string $customName
+     * @param string[] $customName
      * @return null|CustomBoundRakLibInterface
      */
-    private function registerNewInterface($ip, $port, $customName = "")
+    private function registerNewInterface($ip, $port, $customName = [])
     {
         try {
             $server = $this->getServer();
