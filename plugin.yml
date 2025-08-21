@@ -1,0 +1,8 @@
+name: MultiPort
+main: MultiPort\Main
+version: 1.0.1
+api: [2.0.0]
+description: 多端口支持插件(无需修改RakLibInterface)
+author: Windows1145
+website: https://github.com/MC-Windows1145/MultiPort
+load: STARTUP
