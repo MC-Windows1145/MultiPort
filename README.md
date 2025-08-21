@@ -36,4 +36,6 @@ binding:
     onlineplayers: 999
     maxplayers: 1234
 ```
-~~因为懒，所以有10%是AI???~~
+- 因为懒，所以有10%是AI???
+- 感谢sunch233，不然我甚至要自己写整个raknet连接
+- ~~傻逼Windows1145 network文件夹是一眼不看的~~
