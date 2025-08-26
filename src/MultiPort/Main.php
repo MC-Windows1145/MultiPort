@@ -79,7 +79,7 @@ class Main extends PluginBase
                 continue;
             }
 
-            if ($port < 1 || $port > 65535 || !filter_var($port, FILTER_VALIDATE_INT)) {
+            if (!filter_var($port, FILTER_VALIDATE_INT) || $port < 1 || $port > 65535) {
                 $this->getLogger()->error("端口 $port 无效");
                 continue;
             }
@@ -95,39 +95,36 @@ class Main extends PluginBase
             }
 
             if ($this->registerNewInterface($ip, $port, $customName) !== null) { // TODO: 支持新版格式 服务器ID、服务器软件名称、游戏模式，屏蔽Query
-                $this->getLogger()->info("§a成功注册自定义RakLibInterface: $ip:$port");
+                $this->getLogger()->info("§a成功注册自定义RakLib接口: $ip:$port");
             }
         }
 
-        $this->getLogger()->info("§a注册了 " . count($this->extraInterfaces) . " 个自定义RakLibInterface");
+        $this->getLogger()->info("§a注册了 " . count($this->extraInterfaces) . " 个自定义RakLib接口");
     }
 
     /**
      * 构造CustomBoundRakLibInterface并注册到Network，失败返回null
      * @param string $ip
      * @param int $port
-     * @param string[] $customName
+     * @param array<string, string> $customName
      * @return null|CustomBoundRakLibInterface
      */
-    private function registerNewInterface($ip, $port, $customName = [])
+    public function registerNewInterface($ip, $port, $customName = [])
     {
         try {
             $server = $this->getServer();
             $network = $server->getNetwork();
 
-            $interface = new CustomBoundRakLibInterface($server, $ip, $port);
-            if (!empty($customName)) {
-                $interface->setCustomName($customName);
-            }
+            $interface = new CustomBoundRakLibInterface($server, $ip, $port, $customName);
             $network->registerInterface($interface);
 
             $this->extraInterfaces["$ip:$port"] = $interface;
             return $interface;
         } catch (\Exception $e) {
-            $this->getLogger()->error("端口 $port 注册失败:");
+            $this->getLogger()->error("$ip:$port 接口注册失败:");
             $this->getLogger()->logException($e);
         } catch (\Throwable $e) {
-            $this->getLogger()->error("端口 $port 监听失败(严重错误):");
+            $this->getLogger()->error("$ip:$port 监听失败(严重错误):");
             $this->getLogger()->logException($e);
         }
         return null;

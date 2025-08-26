@@ -29,23 +29,17 @@ use raklib\server\ServerHandler;
 class CustomBoundRakLibInterface extends RakLibInterface
 {
     /**
-     * @var string[]
+     * @var array<string, string>
+     * @throws \ReflectionException
      */
     protected $customName = [];
-    public function __construct(Server $server, $ip = null, $port = null/*, $internalPort = null*/)
+    public function __construct(Server $server, $ip = null, $port = null/*, $internalPort = null*/, $customName = [])
     {
-        $reflection = new \ReflectionClass(parent::class);
+        $this->setProperty("server", $server);
+        $this->setProperty("identifiers", []);
 
-        $serverProperty = $reflection->getProperty('server');
-        $serverProperty->setAccessible(true);
-        $serverProperty->setValue($this, $server);
-
-        $identifiersProperty = $reflection->getProperty('identifiers');
-        $identifiersProperty->setAccessible(true);
-        $identifiersProperty->setValue($this, []);
-
-        $bindIp = ($ip !== null) ? $ip : $server->getIp();
-        $bindPort = ($port !== null) ? $port : $server->getPort();
+        $bindIp = $ip ?? $server->getIp();
+        $bindPort = $port ?? $server->getPort();
         //$internalPort = ($internalPort !== null) ? $internalPort : $bindPort;
 
         if ($bindIp === "") {
@@ -53,42 +47,47 @@ class CustomBoundRakLibInterface extends RakLibInterface
         }
 
         $rakLib = new RakLibServer($server->getLogger(), $server->getLoader(), $bindPort, $bindIp);
-
-        $rakLibProperty = $reflection->getProperty('rakLib');
-        $rakLibProperty->setAccessible(true);
-        $rakLibProperty->setValue($this, $rakLib);
+        $this->setProperty("rakLib", $rakLib);
 
         $interface = new ServerHandler($rakLib, $this);
+        $this->setProperty("interface", $interface);
 
-        $interfaceProperty = $reflection->getProperty('interface');
-        $interfaceProperty->setAccessible(true);
-        $interfaceProperty->setValue($this, $interface);
+        $this->customName = $customName;
     }
 
     /**
-     * 反射获取ServerHandler
-     * @return null|ServerHandler
+     * 用反射设置属性值
+     * @throws \ReflectionException
      */
-    protected function getHandler() {
+    protected function setProperty(string $name, $value)
+    {
         $reflection = new \ReflectionClass(parent::class);
-        $interfaceProperty = $reflection->getProperty('interface');
+        $serverProperty = $reflection->getProperty($name);
+        $serverProperty->setAccessible(true);
+        $serverProperty->setValue($this, $value);
+    }
+
+    /**
+     * 用反射获取属性值
+     * @return null|object
+     * @throws \ReflectionException
+     */
+    protected function getProperty(string $name)
+    {
+        $reflection = new \ReflectionClass(parent::class);
+        $interfaceProperty = $reflection->getProperty($name);
         $interfaceProperty->setAccessible(true);
         return $interfaceProperty->getValue($this);
     }
 
-    /**
-     * @param string[] $name
-     */
-    public function setCustomName($name)
+    protected function getHandler()
     {
-        $this->customName = $name;
+        return $this->getProperty("interface");
     }
 
-    protected function getServer() {
-        $reflection = new \ReflectionClass(parent::class);
-        $serverProperty = $reflection->getProperty('server');
-        $serverProperty->setAccessible(true);
-        return $serverProperty->getValue($this);
+    protected function getServer()
+    {
+        return $this->getProperty("server");
     }
 
     public function setName($name)
@@ -102,6 +101,11 @@ class CustomBoundRakLibInterface extends RakLibInterface
 
     public function updateCustomName()
     {
+        $this->sendFullName($this->buildCustomName());
+    }
+
+    protected function buildCustomName()
+    {
         $info = $this->getServer()->getQueryInformation();
         $customName = [
             "edition" => "MCPE",
@@ -111,7 +115,9 @@ class CustomBoundRakLibInterface extends RakLibInterface
             "onlineplayers" => $info->getPlayerCount(),
             "maxplayers" => $info->getMaxPlayerCount()
         ];
+
         $customName = array_merge($customName, $this->customName);
+
         $customName = implode(";", [
             $customName["edition"],
             addcslashes($customName["motd"], ";"),
@@ -120,10 +126,11 @@ class CustomBoundRakLibInterface extends RakLibInterface
             $customName["onlineplayers"],
             $customName["maxplayers"]
         ]);
-        $this->sendFullName($customName);
+
+        return $customName;
     }
 
-    public function sendFullName($fullName)
+    protected function sendFullName($fullName)
     {
         $this->getHandler()->sendOption("name", $fullName);
     }
